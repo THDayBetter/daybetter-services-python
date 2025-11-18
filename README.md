@@ -76,7 +76,7 @@ Pull requests are welcome! Please open an issue if you encounter problems with t
 
 ## Release Process
 
-1. Update `pyproject.toml`, `setup.py`, and `daybetter_python/__init__.py` with the new version.
+1. Update `pyproject.toml` and `daybetter_python/__init__.py` with the new version.
 2. Document changes in `CHANGELOG.md`.
 3. Build and upload:
    ```bash

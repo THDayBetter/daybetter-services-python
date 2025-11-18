@@ -3,10 +3,10 @@
 
 class DayBetterError(Exception):
     """Base exception for DayBetter client."""
-    
+
     def __init__(self, message: str) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: Error message
         """
@@ -16,10 +16,10 @@ class DayBetterError(Exception):
 
 class AuthenticationError(DayBetterError):
     """Authentication failed."""
-    
+
     def __init__(self, message: str = "Authentication failed") -> None:
         """Initialize the authentication error.
-        
+
         Args:
             message: Error message
         """
@@ -28,10 +28,10 @@ class AuthenticationError(DayBetterError):
 
 class APIError(DayBetterError):
     """API request failed."""
-    
+
     def __init__(self, message: str) -> None:
         """Initialize the API error.
-        
+
         Args:
             message: Error message
         """

@@ -57,5 +57,9 @@ target-version = ['py38']
 profile = "black"
 line_length = 88
 
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["W503"]
+
 [tool.setuptools.package-data]
 daybetter_python = ["py.typed"]

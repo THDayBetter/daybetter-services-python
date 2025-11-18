@@ -11,26 +11,26 @@ _LOGGER = logging.getLogger(__name__)
 
 class DayBetterClient:
     """DayBetter API client."""
-    
+
     TEST_BASE_URL = "https://cloud.v2.dbiot.link/daybetter/hass/api/v1.0/"
     PROD_BASE_URL = "https://a.dbiot.org/daybetter/hass/api/v1.0/"
-    
+
     def __init__(
-        self, 
-        token: str, 
+        self,
+        token: str,
         base_url: Optional[str] = None,
         hass_code: Optional[str] = None
     ):
         """Initialize the client.
-        
+
         Args:
             token: Authentication token
-            base_url: Base URL for the API (optional, will be determined by hass_code if not provided)
-            hass_code: Home Assistant integration code (optional, if provided and starts with "db-", 
-                      will use production environment)
+            base_url: Base URL for the API (optional, determined by hass_code if not provided)
+            hass_code: Home Assistant integration code (optional, if provided and starts
+                with "db-", will use production environment)
         """
         self.token = token
-        
+
         if base_url is not None:
             self.base_url = base_url
         elif hass_code is not None and hass_code.startswith("db-"):
@@ -39,17 +39,17 @@ class DayBetterClient:
         else:
             self.base_url = self.TEST_BASE_URL
             _LOGGER.debug("Using test environment")
-        
+
         self._session: Optional[aiohttp.ClientSession] = None
         self._auth_valid = True
         self._devices: List[Dict[str, Any]] = []
         self._pids: Dict[str, Any] = {}
-    
+
     async def __aenter__(self):
         """Async context manager entry."""
         self._session = aiohttp.ClientSession()
         return self
-    
+
     async def __aexit__(
         self,
         exc_type: Optional[Type[BaseException]],
@@ -60,23 +60,23 @@ class DayBetterClient:
         if self._session:
             await self._session.close()
             self._session = None
-    
+
     def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if not self._session:
             self._session = aiohttp.ClientSession()
         return self._session
-    
+
     def _get_headers(self) -> Dict[str, str]:
         """Get request headers."""
         return {"Authorization": f"Bearer {self.token}"}
-    
+
     async def fetch_devices(self) -> List[Dict[str, Any]]:
         """Fetch devices from API.
-        
+
         Returns:
             List of device dictionaries
-            
+
         Raises:
             AuthenticationError: If authentication fails
             APIError: If API request fails
@@ -85,7 +85,7 @@ class DayBetterClient:
             session = self._get_session()
             url = f"{self.base_url}hass/devices"
             headers = self._get_headers()
-            
+
             async with session.post(url, headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -107,13 +107,13 @@ class DayBetterClient:
         except Exception as e:
             _LOGGER.exception("Exception while fetching devices: %s", e)
             raise DayBetterError(f"Unexpected error: {e}")
-    
+
     async def fetch_pids(self) -> Dict[str, Any]:
         """Fetch device type PIDs.
-        
+
         Returns:
             Dictionary of device type PIDs
-            
+
         Raises:
             AuthenticationError: If authentication fails
             APIError: If API request fails
@@ -122,7 +122,7 @@ class DayBetterClient:
             session = self._get_session()
             url = f"{self.base_url}hass/pids"
             headers = self._get_headers()
-            
+
             async with session.post(url, headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -142,7 +142,7 @@ class DayBetterClient:
         except Exception as e:
             _LOGGER.exception("Exception while fetching PIDs: %s", e)
             raise DayBetterError(f"Unexpected error: {e}")
-    
+
     async def control_device(
         self,
         device_name: str,
@@ -152,17 +152,17 @@ class DayBetterClient:
         color_temp: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Control a device.
-        
+
         Args:
             device_name: Name of the device to control
             action: Switch action (True/False)
             brightness: Brightness value (0-255)
             hs_color: Hue and saturation tuple (hue, saturation)
             color_temp: Color temperature in mireds
-            
+
         Returns:
             Control result dictionary
-            
+
         Raises:
             AuthenticationError: If authentication fails
             APIError: If API request fails
@@ -170,7 +170,7 @@ class DayBetterClient:
         session = self._get_session()
         url = f"{self.base_url}hass/control"
         headers = self._get_headers()
-        
+
         if color_temp is not None:
             kelvin = int(1000000 / color_temp)
             payload = {
@@ -190,17 +190,17 @@ class DayBetterClient:
             }
         elif brightness is not None:
             payload = {
-                "deviceName": device_name, 
-                "type": 2, 
+                "deviceName": device_name,
+                "type": 2,
                 "brightness": brightness
             }
         else:
             payload = {
-                "deviceName": device_name, 
-                "type": 1, 
+                "deviceName": device_name,
+                "type": 1,
                 "on": action
             }
-        
+
         try:
             async with session.post(url, headers=headers, json=payload) as resp:
                 if resp.status == 200:
@@ -213,7 +213,7 @@ class DayBetterClient:
                 else:
                     error_text = await resp.text()
                     _LOGGER.error(
-                        "Failed to control device %s: HTTP %d - %s", 
+                        "Failed to control device %s: HTTP %d - %s",
                         device_name, resp.status, error_text
                     )
                     raise APIError(f"API error {resp.status}: {error_text}")
@@ -227,13 +227,13 @@ class DayBetterClient:
                 "Exception while controlling device %s: %s", device_name, e
             )
             raise DayBetterError(f"Unexpected error: {e}")
-    
+
     async def fetch_mqtt_config(self) -> Dict[str, Any]:
         """Fetch MQTT connection configuration.
-        
+
         Returns:
             MQTT configuration dictionary
-            
+
         Raises:
             AuthenticationError: If authentication fails
             APIError: If API request fails
@@ -242,11 +242,11 @@ class DayBetterClient:
         url = f"{self.base_url}hass/cert"
         headers = self._get_headers()
         _LOGGER.debug("Requesting MQTT configuration URL: %s", url)
-        
+
         try:
             async with session.post(url, headers=headers) as resp:
                 _LOGGER.debug("MQTT configuration API response status: %d", resp.status)
-                
+
                 if resp.status == 200:
                     data = await resp.json()
                     _LOGGER.debug("MQTT configuration API raw response: %s", data)
@@ -266,10 +266,10 @@ class DayBetterClient:
         except Exception as e:
             _LOGGER.exception("Exception while fetching MQTT config: %s", e)
             raise DayBetterError(f"Unexpected error: {e}")
-    
+
     async def fetch_device_statuses(self) -> List[Dict[str, Any]]:
         """Fetch statuses for all devices.
-        
+
         Returns:
             List of device status dictionaries. Example item:
             {
@@ -280,7 +280,7 @@ class DayBetterClient:
                 "humi": int,
                 "bettery": int
             }
-        
+
         Raises:
             AuthenticationError: If authentication fails
             APIError: If API request fails
@@ -289,7 +289,7 @@ class DayBetterClient:
             session = self._get_session()
             url = f"{self.base_url}hass/status"
             headers = self._get_headers()
-            
+
             async with session.post(url, headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -309,16 +309,16 @@ class DayBetterClient:
         except Exception as e:
             _LOGGER.exception("Exception while fetching device statuses: %s", e)
             raise DayBetterError(f"Unexpected error: {e}")
-    
+
     async def integrate(self, hass_code: str) -> Dict[str, Any]:
         """Integrate with Home Assistant using hassCode.
-        
+
         Args:
             hass_code: Home Assistant integration code from APP
-            
+
         Returns:
             Integration result dictionary
-            
+
         Raises:
             APIError: If API request fails
         """
@@ -336,12 +336,12 @@ class DayBetterClient:
                 "Switching to test environment based on hass_code. "
                 "URL changed from %s to %s", old_url, self.base_url
             )
-        
+
         try:
             session = self._get_session()
             url = f"{self.base_url}hass/integrate"
             payload = {"hassCode": hass_code}
-            
+
             async with session.post(url, json=payload) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -357,23 +357,23 @@ class DayBetterClient:
         except Exception as e:
             _LOGGER.exception("Exception while integrating: %s", e)
             raise DayBetterError(f"Unexpected error: {e}")
-    
+
     @property
     def is_authenticated(self) -> bool:
         """Check if the API client is authenticated."""
         return self._auth_valid
-    
+
     def filter_sensor_devices(
         self,
         devices: List[Dict[str, Any]],
         pids: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         """Filter devices to only include sensors based on PID.
-        
+
         Args:
             devices: List of all devices
             pids: Dictionary containing device type PIDs
-            
+
         Returns:
             List of sensor devices only
         """
@@ -388,18 +388,18 @@ class DayBetterClient:
             for device in devices
             if device.get("deviceMoldPid", "") in sensor_pids
         ]
-    
+
     def merge_device_status(
         self,
         devices: List[Dict[str, Any]],
         statuses: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
         """Merge device info with status info.
-        
+
         Args:
             devices: List of device info dictionaries
             statuses: List of device status dictionaries
-            
+
         Returns:
             List of merged device dictionaries
         """
@@ -416,32 +416,32 @@ class DayBetterClient:
             merged.append(merged_device)
 
         return merged
-    
+
     async def fetch_sensor_data(self) -> List[Dict[str, Any]]:
         """Fetch and process sensor data in one call.
-        
+
         This method fetches device statuses, devices list, and PIDs,
         filters for sensor devices, and merges the data.
-        
+
         Returns:
             List of sensor devices with merged status data
-            
+
         Raises:
             AuthenticationError: If authentication fails
             APIError: If API request fails
         """
         statuses = await self.fetch_device_statuses()
-        
+
         if not self._devices or not self._pids:
             self._devices = await self.fetch_devices()
             self._pids = await self.fetch_pids()
-        
+
         sensor_devices = self.filter_sensor_devices(self._devices, self._pids)
-        
+
         merged = self.merge_device_status(sensor_devices, statuses)
         _LOGGER.debug("Fetched %d sensor devices", len(merged))
         return merged
-    
+
     async def close(self) -> None:
         """Close the client session."""
         if self._session:

@@ -3,5 +3,5 @@
 from .client import DayBetterClient
 from .exceptions import DayBetterError, AuthenticationError, APIError
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 __all__ = ["DayBetterClient", "DayBetterError", "AuthenticationError", "APIError"]

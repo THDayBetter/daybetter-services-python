@@ -1,10 +1,11 @@
 """DayBetter API client."""
 
-import aiohttp
 import logging
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from .exceptions import DayBetterError, AuthenticationError, APIError
+import aiohttp
+
+from .exceptions import APIError, AuthenticationError, DayBetterError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +20,8 @@ class DayBetterClient:
         self,
         token: str,
         base_url: Optional[str] = None,
-        hass_code: Optional[str] = None
+        hass_code: Optional[str] = None,
+        session: Optional[aiohttp.ClientSession] = None,
     ):
         """Initialize the client.
 
@@ -28,6 +30,8 @@ class DayBetterClient:
             base_url: Base URL for the API (optional, determined by hass_code if not provided)
             hass_code: Home Assistant integration code (optional, if provided and starts
                 with "db-", will use production environment)
+            session: Optional aiohttp ClientSession. If provided, the client will use it
+                and will not close it when close() is called (caller owns the session).
         """
         self.token = token
 
@@ -40,14 +44,16 @@ class DayBetterClient:
             self.base_url = self.TEST_BASE_URL
             _LOGGER.debug("Using test environment")
 
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: Optional[aiohttp.ClientSession] = session
+        self._own_session: bool = session is None
         self._auth_valid = True
         self._devices: List[Dict[str, Any]] = []
         self._pids: Dict[str, Any] = {}
 
     async def __aenter__(self):
         """Async context manager entry."""
-        self._session = aiohttp.ClientSession()
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
         return self
 
     async def __aexit__(
@@ -57,13 +63,13 @@ class DayBetterClient:
         exc_tb: Optional[Any],
     ) -> None:
         """Async context manager exit."""
-        if self._session:
+        if self._own_session and self._session is not None:
             await self._session.close()
             self._session = None
 
     def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
-        if not self._session:
+        if self._session is None:
             self._session = aiohttp.ClientSession()
         return self._session
 
@@ -443,7 +449,7 @@ class DayBetterClient:
         return merged
 
     async def close(self) -> None:
-        """Close the client session."""
-        if self._session:
+        """Close the client session if this client created it."""
+        if self._own_session and self._session is not None:
             await self._session.close()
             self._session = None

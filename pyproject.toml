@@ -33,10 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/THDayBetter/daybetter-python"
-Documentation = "https://github.com/THDayBetter/daybetter-python#readme"
-Repository = "https://github.com/THDayBetter/daybetter-python.git"
-"Bug Tracker" = "https://github.com/THDayBetter/daybetter-python/issues"
+Homepage = "https://github.com/THDayBetter/daybetter-services-python"
+Documentation = "https://github.com/THDayBetter/daybetter-services-python#readme"
+Repository = "https://github.com/THDayBetter/daybetter-services-python.git"
+"Bug Tracker" = "https://github.com/THDayBetter/daybetter-services-python/issues"
 
 [project.optional-dependencies]
 dev = [
